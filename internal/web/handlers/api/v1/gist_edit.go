@@ -200,7 +200,8 @@ func UpdateGist(ctx *context.Context) error {
 		g.Private = db.ParseVisibility(*req.Visibility)
 	}
 
-	// Build file list for DTO validation
+	// File patch: only rebuild the working tree if `files` carried at least
+	// one entry. (`files: {}` is a no-op.)	
 	var filesDTO []db.FileDTO
 	if len(req.Files) > 0 {
 		merged, err := mergePatchFiles(g, req.Files)
