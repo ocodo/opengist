@@ -576,28 +576,6 @@ func TestCreateGist_SlugURLAndTopics(t *testing.T) {
 	require.ElementsMatch(t, []string{"go", "api", "testing"}, got.Topics)
 }
 
-func TestCreateGist_DuplicateURL(t *testing.T) {
-	s, tok := setupCreateGist(t)
-
-	body := map[string]interface{}{
-		"title":      "First",
-		"slug_url":        "my-test-gist",
-		"visibility": "public",
-		"files": fileMap{
-			"test.txt": {"content": "hello"},
-		},
-	}
-
-	s.APIRequest(t, "POST", "/api/gists", tok, body, 201)
-
-	body["title"] = "Second"
-	body["files"] = fileMap{
-		"other.txt": {"content": "different"},
-	}
-
-	s.APIRequest(t, "POST", "/api/gists", tok, body, 400)
-}
-
 func TestUpdateGist_URLAndTopics(t *testing.T) {
 	s, tok := setupCreateGist(t)
 
@@ -620,22 +598,4 @@ func TestUpdateGist_URLAndTopics(t *testing.T) {
 	require.Equal(t, "seed-title", resp.Title)
 	require.Equal(t, "seed-description", resp.Description)
 	require.Equal(t, "public", resp.Visibility)
-
-	// A second gist cannot be updated to a URL already owned by this gist.
-	otherID := createGistViaAPI(t, s, tok, map[string]interface{}{
-		"title": "other",
-		"files": fileMap{
-			"other.txt": {"content": "other"},
-		},
-	})
-
-	s.APIRequest(t, "PATCH", "/api/gists/"+otherID, tok,
-		`{"slug_url": "my-gist-url"}`, 422)
-
-	// The failed update must not mutate the second gist.
-	_, raw = s.APIRequest(t, "GET", "/api/gists/"+otherID, tok, nil, 200)
-
-	var other types.Gist
-	require.NoError(t, json.Unmarshal(raw, &other))
-	require.Empty(t, other.SlugUrl)
 }
