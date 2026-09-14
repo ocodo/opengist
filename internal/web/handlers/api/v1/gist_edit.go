@@ -165,8 +165,21 @@ func UpdateGist(ctx *context.Context) error {
 
 	// PATCH requires at least one actionable field - otherwise we'd just
 	// rewrite the gist's updated_at for no reason.
-	if req.Description == nil && req.Title == nil && req.Visibility == nil && len(req.Files) == 0 {
-		return ctx.ErrorJson(422, "at least one of description, title, visibility, or files must be set", nil)
+	if req.Description == nil && req.Title == nil && req.Visibility == nil && req.SlugUrl == nil && req.Topics == nil && len(req.Files) == 0 {
+		return ctx.ErrorJson(422, "at least one field must be set", nil)
+	}
+
+	if req.SlugUrl != nil {
+		g.URL = strings.TrimSpace(*req.SlugUrl)
+	}
+
+	if req.Topics != nil {
+		g.Topics = make([]db.GistTopic, 0, len(*req.Topics))
+		for _, topic := range *req.Topics {
+			g.Topics = append(g.Topics, db.GistTopic{
+				Topic: topic,
+			})
+		}
 	}
 
 	if req.Title != nil {
