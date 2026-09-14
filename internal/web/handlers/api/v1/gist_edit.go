@@ -57,7 +57,7 @@ func CreateGist(ctx *context.Context) error {
 		Expire:        db.ExpirationType(strOrEmpty(req.Expire)),
 		VisibilityDTO: db.VisibilityDTO{Private: db.ParseVisibility(strOrEmpty(req.Visibility))},
 	}
-	
+
 	// An explicit custom date takes precedence over the preset.
 	if req.ExpiresAt != nil {
 		dto.Expire = db.ExpiryCustom
@@ -201,7 +201,7 @@ func UpdateGist(ctx *context.Context) error {
 	}
 
 	// File patch: only rebuild the working tree if `files` carried at least
-	// one entry. (`files: {}` is a no-op.)	
+	// one entry. (`files: {}` is a no-op.)
 	var filesDTO []db.FileDTO
 	if len(req.Files) > 0 {
 		merged, err := mergePatchFiles(g, req.Files)
@@ -258,7 +258,7 @@ func UpdateGist(ctx *context.Context) error {
 	}
 	return ctx.JSON(200, resp)
 }
-	
+
 // DeleteGist handles DELETE /api/gists/:uuid.
 // Owner-only - the route's apiScope(ScopeGist, ReadWritePermission) middleware
 // enforces the token scope before we get here, so we just confirm ownership and
