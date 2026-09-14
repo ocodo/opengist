@@ -559,7 +559,7 @@ func TestCreateGist_SlugURLAndTopics(t *testing.T) {
 
 	body := map[string]interface{}{
 		"title":      "URL and Topics",
-		"slug_url":        "my-test-gist",
+		"slug_url":   "my-test-gist",
 		"topics":     []string{"go", "api", "testing"},
 		"visibility": "public",
 		"files": fileMap{
