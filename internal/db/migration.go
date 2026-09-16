@@ -82,6 +82,7 @@ func applyAllMigrations(dbType databaseType) error {
 
 	return nil
 }
+
 // Modify the constraint on the ssh_keys table to use ON DELETE CASCADE
 func v1_modifyConstraintToSSHKeys(tx *gorm.DB) error {
 	createSQL := `
