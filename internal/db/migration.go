@@ -32,12 +32,13 @@ func applyAllMigrations(dbType databaseType) error {
 
 	migrations := []struct {
 		Version uint
-		DBTypes []databaseType // nil = all types
+		DBTypes []databaseType
 		Func    func() error
 	}{
 		{1, []databaseType{SQLite}, v1_modifyConstraintToSSHKeys},
 		{2, []databaseType{SQLite}, v2_lowercaseEmails},
 		{3, nil, v3_normalizedColumns},
+		{4, nil, v4_uniqueGistUserUrlIndex},
 	}
 
 	for _, m := range migrations {
@@ -45,7 +46,6 @@ func applyAllMigrations(dbType databaseType) error {
 			continue
 		}
 
-		// Skip migrations not intended for this DB type
 		if len(m.DBTypes) > 0 {
 			applicable := false
 			for _, t := range m.DBTypes {
@@ -55,7 +55,6 @@ func applyAllMigrations(dbType databaseType) error {
 				}
 			}
 			if !applicable {
-				// Advance version so we don't retry on next startup
 				currentVersion.Version = m.Version
 				db.Save(&currentVersion)
 				continue
@@ -87,7 +86,6 @@ func applyAllMigrations(dbType databaseType) error {
 	return nil
 }
 
-// Modify the constraint on the ssh_keys table to use ON DELETE CASCADE
 func v1_modifyConstraintToSSHKeys() error {
 	createSQL := `
 	CREATE TABLE ssh_keys_temp (
@@ -106,25 +104,21 @@ func v1_modifyConstraintToSSHKeys() error {
 		return err
 	}
 
-	// Copy data from the old table to the new table
 	copySQL := `INSERT INTO ssh_keys_temp SELECT * FROM ssh_keys;`
 	if err := db.Exec(copySQL).Error; err != nil {
 		return err
 	}
 
-	// Drop the old table
 	dropSQL := `DROP TABLE ssh_keys;`
 	if err := db.Exec(dropSQL).Error; err != nil {
 		return err
 	}
 
-	// Rename the new table to the original table name
 	renameSQL := `ALTER TABLE ssh_keys_temp RENAME TO ssh_keys;`
 	return db.Exec(renameSQL).Error
 }
 
 func v2_lowercaseEmails() error {
-	// Copy the lowercase emails into the new column
 	copySQL := `UPDATE users SET email = lower(email);`
 	return db.Exec(copySQL).Error
 }
@@ -136,4 +130,46 @@ func v3_normalizedColumns() error {
 	}
 	return db.Model(&Gist{}).Where("url_normalized = '' OR url_normalized IS NULL").
 		Updates(map[string]interface{}{"url_normalized": gorm.Expr("LOWER(url)")}).Error
+}
+
+func v4_uniqueGistUserUrlIndex() error {
+	var gists []Gist
+	if err := db.Order("id").Find(&gists).Error; err != nil {
+		return err
+	}
+
+	seen := make(map[uint]map[string]bool)
+
+	for _, gist := range gists {
+		if seen[gist.UserID] == nil {
+			seen[gist.UserID] = make(map[string]bool)
+		}
+
+		url := gist.URL
+		if !seen[gist.UserID][url] {
+			seen[gist.UserID][url] = true
+			continue
+		}
+
+		for suffix := 1; ; suffix++ {
+			candidate := fmt.Sprintf("%s-%d", url, suffix)
+			if seen[gist.UserID][candidate] {
+				continue
+			}
+
+			if err := db.Model(&Gist{}).
+				Where("id = ?", gist.ID).
+				Updates(map[string]interface{}{
+					"url":            candidate,
+					"url_normalized": gorm.Expr("LOWER(?)", candidate),
+				}).Error; err != nil {
+				return err
+			}
+
+			seen[gist.UserID][candidate] = true
+			break
+		}
+	}
+
+	return db.Migrator().CreateIndex(&Gist{}, "idx_gists_user_url")
 }

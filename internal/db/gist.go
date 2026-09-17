@@ -71,14 +71,14 @@ type Gist struct {
 	ID              uint `gorm:"primaryKey"`
 	Uuid            string
 	Title           string
-	URL             string
+	URL             string `gorm:"uniqueIndex:idx_gists_user_slug_url"`
 	URLNormalized   string
 	Preview         string
 	PreviewFilename string
 	PreviewMimeType string
 	Description     string
 	Private         Visibility // 0: public, 1: unlisted, 2: private
-	UserID          uint
+	UserID          uint       `gorm:"uniqueIndex:idx_gists_user_slug_url"`
 	User            User
 	NbFiles         int
 	NbLikes         int
