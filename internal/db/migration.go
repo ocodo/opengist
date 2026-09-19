@@ -145,7 +145,10 @@ func v4_uniqueGistUserUrlIndex() error {
 			seen[gist.UserID] = make(map[string]bool)
 		}
 
-		url := gist.URL
+		var url string
+		if gist.URL != nil {
+			url = *gist.URL
+		}
 		if !seen[gist.UserID][url] {
 			seen[gist.UserID][url] = true
 			continue
@@ -171,5 +174,10 @@ func v4_uniqueGistUserUrlIndex() error {
 		}
 	}
 
-	return db.Migrator().CreateIndex(&Gist{}, "idx_gists_user_url")
+	if !db.Migrator().HasIndex(&Gist{}, "idx_gists_user_url") {
+		if err := db.Migrator().CreateIndex(&Gist{}, "idx_gists_user_url"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
