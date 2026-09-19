@@ -78,7 +78,7 @@ type Gist struct {
 	PreviewMimeType string
 	Description     string
 	Private         Visibility // 0: public, 1: unlisted, 2: private
-	UserID          uint `gorm:"uniqueIndex:idx_gists_user_url"`
+	UserID          uint       `gorm:"uniqueIndex:idx_gists_user_url"`
 	User            User
 	NbFiles         int
 	NbLikes         int
@@ -92,7 +92,7 @@ type Gist struct {
 	Forked   *Gist  `gorm:"foreignKey:ForkedID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	ForkedID uint
 
-	Topics    []GistTopic `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Topics    []GistTopic    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Languages []GistLanguage `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
